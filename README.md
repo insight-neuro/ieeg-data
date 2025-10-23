@@ -37,7 +37,7 @@ session = Data(
         affected_channels = np.array([[1]], type=bool), # shape: (n_artifacts, n_electrodes)
         description = np.array(["UNKNOWN"]),
         timekeys = ['start', 'end'],  # Only time should be adjusted during operations
-    )
+    ),
 
     # In case the data includes any type of triggers. Note: These could be redundant with the other tags below.
     triggers = IrregularTimeSeries(
