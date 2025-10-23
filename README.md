@@ -4,6 +4,7 @@ This repository provides tools for converting various iEEG neural data formats i
 
 ## Data Format
 
+Each pre-processed session will be saved to `ROOT/dataset_identifier/subject_identifier/session_identifier/data.h5` in the following `temporaldata` format:
 ```python
 session = Data(
     # metadata
