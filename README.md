@@ -11,6 +11,7 @@ session = Data(
     brainset = "STRING",
     subject = "STRING",
     session = "STRING",
+    citation = "STRING", # in bib format
     
     # In case the data includes iEEG. NTOE: EEG is also included here, as it is a generalization (the same data format).
     ieeg = RegularTimeSeries(
