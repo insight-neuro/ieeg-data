@@ -10,12 +10,12 @@ import numpy as np
 import pandas as pd
 from temporaldata import ArrayDict, RegularTimeSeries
 
-from base import BIDSSession, SessionBase
+from base import SessionBase
 
 logger = logging.getLogger(__name__)
 
 
-class BrainTreebankSession(BIDSSession):
+class BrainTreebankSession(SessionBase):
     """
     This class is used to load the iEEG neural data for a given session from the BrainTreebank dataset at https://braintreebank.dev/
     """
@@ -41,10 +41,9 @@ class BrainTreebankSession(BIDSSession):
         root_dir=None,
         allow_corrupted=False,
     ):
-        # Note: BrainTreebankSession inherits from BIDSSession for convenience,
-        # but the data format is not BIDS. We override the __init__ to use our own file structure.
-        SessionBase.__init__(
-            self,
+        # Note: BrainTreebankSession inherits from SessionBase.
+        # The data format is not BIDS despite the name.
+        super().__init__(
             subject_identifier,
             session_identifier,
             root_dir=root_dir,

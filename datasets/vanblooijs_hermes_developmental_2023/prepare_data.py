@@ -7,7 +7,7 @@ import pandas as pd
 from mne_bids import BIDSPath
 from temporaldata import IrregularTimeSeries
 
-from base import BIDSSession
+from base.bids_session import BIDSSession
 
 
 class CCEPSession(BIDSSession):

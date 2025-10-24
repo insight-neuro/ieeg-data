@@ -1,4 +1,4 @@
-# Base dependencies (from base/session.py)
+# Base dependencies (from base/session.py and base/bids_session.py)
 h5py>=3.8.0
 numpy>=1.24.0
 pandas>=2.0.0
