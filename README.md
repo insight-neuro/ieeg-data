@@ -2,6 +2,20 @@
 
 This repository provides tools for converting various iEEG neural data formats into a standardized `temporaldata` format. The goal is to facilitate data sharing, analysis, and interoperability across different research groups and studies.
 
+## Installation
+
+To install the necessary requirements and packages, please run the following commands. First, optionally, install a virtual environment with:
+```python
+python -m venv .venv
+source .venv/bin/activate # On Windows: .venv/Scripts/activate
+pip install --upgrade pip
+```
+Then, use `pip` to install the necessary packages to run the code in this repository:
+```python
+pip install -r requirements.txt
+```
+Then, create a `.env` file, using the `.env.example` template, where you will have to specify the `PROCESSED_DATA_DIR`, `RAW_DATA_DIR`, and optionally any dataset-specific directories.
+
 ## Data Format
 
 Each pre-processed session will be saved to `PROCESSED_DATA_DIR/dataset_identifier/subject_identifier/session_identifier/data.h5`, where `PROCESSED_DATA_DIR` can be specified as an environmental variable in `.env`. The data will be stored in the following `temporaldata` format:
@@ -75,17 +89,3 @@ session = Data(
     domain=ieeg.domain
 )
 ```
-
-## Installation
-
-To install the necessary requirements and packages, please run the following commands. First, optionally, install a virtual environment with:
-```python
-python -m venv .venv
-source .venv/bin/activate # On Windows: .venv/Scripts/activate
-pip install --upgrade pip
-```
-Then, use `pip` to install the necessary packages to run the code in this repository:
-```python
-pip install -r requirements.txt
-```
-Then, create a `.env` file, using the `.env.example` template, where you will have to specify the `PROCESSED_DATA_DIR`, `RAW_DATA_DIR`, and optionally any dataset-specific directories.
