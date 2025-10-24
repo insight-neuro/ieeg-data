@@ -202,9 +202,9 @@ if __name__ == "__main__":
     import dotenv
 
     dotenv.load_dotenv()
-    save_root_dir = os.getenv("DATA_ROOT_DIR")
+    save_root_dir = os.getenv("PROCESSED_DATA_DIR")
     if save_root_dir is None:
-        raise ValueError("DATA_ROOT_DIR environment variable not set.")
+        raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
 
     BrainTreebankSession.save_all_subjects_sessions(root_dir=root_dir, save_root_dir=save_root_dir)
 

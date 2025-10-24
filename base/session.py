@@ -92,10 +92,14 @@ class SessionBase(ABC):
         """
         Find the root directory of the dataset in the environment variables.
         """
-        try:
-            return os.environ["ROOT_DIR_" + cls.dataset_identifier.upper()]
-        except KeyError:
-            raise ValueError(f"When loading dataset {cls.dataset_identifier}, ROOT_DIR_{cls.dataset_identifier.upper()} not set in environment variables. Please either set the ROOT_DIR_{cls.dataset_identifier.upper()} environment variable or pass the root_dir argument to the constructor.") from None
+        root_dir = os.environ.get("RAW_DATA_DIR_" + cls.dataset_identifier.upper(), None)
+        if root_dir is not None:
+            root_dir = os.environ["RAW_DATA_DIR"] + "/" + cls.dataset_identifier
+        return root_dir
+        # try:
+        #     return os.environ["RAW_DATA_DIR_" + cls.dataset_identifier.upper()]
+        # except KeyError:
+        #     raise ValueError(f"When loading dataset {cls.dataset_identifier}, ROOT_DIR_{cls.dataset_identifier.upper()} not set in environment variables. Please either set the ROOT_DIR_{cls.dataset_identifier.upper()} environment variable or pass the root_dir argument to the constructor.") from None
 
     @classmethod
     @abstractmethod
