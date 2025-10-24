@@ -126,10 +126,12 @@ class SessionBase(ABC):
         Returns:
             list: List of dictionaries containing:
                 - session_identifier: the session identifier (e.g., "031411")
-                - events_file: path to the file containing the events
-                - ieeg_file: path to the file containing the iEEG data. Must be a BIDSPath object.
-                - ieeg_electrodes_file: path to the file containing the electrodes. This file will contain the coordinates of each electrode.
-                - ieeg_channels_file: path to the file containing the channels. This file will contain the labels of each channel and session-specific metadata (good vs bad channels, etc.)
+                - files: a dictionary with arbitrary keys for file paths. The specific keys depend on the dataset format.
+                    For example, for BIDS datasets, this typically includes:
+                        - ieeg_file: path to the file containing the iEEG data (BIDSPath object)
+                        - ieeg_electrodes_file: path to the electrodes file with coordinates
+                        - ieeg_channels_file: path to the channels file with labels and metadata
+                        - events_file: path to the events file (optional)
         """
         raise NotImplementedError("Not implemented")
 
@@ -257,8 +259,8 @@ class BIDSSession(SessionBase):
             allow_corrupted=allow_corrupted,
         )
 
-        self.data_dict["channels"] = self._load_ieeg_electrodes(self.session["ieeg_electrodes_file"], self.session["ieeg_channels_file"])
-        self.data_dict["ieeg"] = self._load_ieeg_data(self.session["ieeg_file"])
+        self.data_dict["channels"] = self._load_ieeg_electrodes(self.session["files"]["ieeg_electrodes_file"], self.session["files"]["ieeg_channels_file"])
+        self.data_dict["ieeg"] = self._load_ieeg_data(self.session["files"]["ieeg_file"])
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:

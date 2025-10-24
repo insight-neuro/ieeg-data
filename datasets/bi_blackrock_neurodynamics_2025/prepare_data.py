@@ -24,8 +24,8 @@ class BlackrockSession(SessionBase):
     def __init__(self, subject_identifier, session_identifier, root_dir=None, allow_corrupted=False):
         super().__init__(subject_identifier, session_identifier, root_dir=root_dir, allow_corrupted=allow_corrupted)
 
-        self.data_dict["channels"] = self._load_ieeg_electrodes(self.session["ieeg_electrodes_file"], self.session["ieeg_channels_file"])
-        self.data_dict["ieeg"] = self._load_ieeg_data(self.session["ieeg_file"])
+        self.data_dict["channels"] = self._load_ieeg_electrodes(self.session["files"]["ieeg_electrodes_file"], self.session["files"]["ieeg_channels_file"])
+        self.data_dict["ieeg"] = self._load_ieeg_data(self.session["files"]["ieeg_file"])
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
@@ -51,10 +51,12 @@ class BlackrockSession(SessionBase):
         return [
             {
                 "session_identifier": session_identifier,
-                "events_file": None,  # TODO: add the events later
-                "ieeg_file": subject_dir / session_identifier / "ieeg.mat",
-                "ieeg_electrodes_file": subject_dir / session_identifier / "electrodes.mat",
-                "ieeg_channels_file": subject_dir / session_identifier / "channels.mat",
+                "files": {
+                    "events_file": None,  # TODO: add the events later
+                    "ieeg_file": subject_dir / session_identifier / "ieeg.mat",
+                    "ieeg_electrodes_file": subject_dir / session_identifier / "electrodes.mat",
+                    "ieeg_channels_file": subject_dir / session_identifier / "channels.mat",
+                }
             }
             for session_identifier in session_identifiers
         ]

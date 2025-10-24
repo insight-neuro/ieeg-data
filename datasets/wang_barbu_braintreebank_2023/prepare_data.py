@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from temporaldata import ArrayDict, RegularTimeSeries
 
-from base import BIDSSession
+from base import BIDSSession, SessionBase
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,18 @@ class BrainTreebankSession(BIDSSession):
         root_dir=None,
         allow_corrupted=False,
     ):
-        super().__init__(
+        # Note: BrainTreebankSession inherits from BIDSSession for convenience,
+        # but the data format is not BIDS. We override the __init__ to use our own file structure.
+        SessionBase.__init__(
+            self,
             subject_identifier,
             session_identifier,
             root_dir=root_dir,
             allow_corrupted=allow_corrupted,
         )
+
+        self.data_dict["channels"] = self._load_ieeg_electrodes()
+        self.data_dict["ieeg"] = self._load_ieeg_data()
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
@@ -91,10 +97,13 @@ class BrainTreebankSession(BIDSSession):
         return [
             {
                 "session_identifier": f"trial{trial_id:03}",
-                "events_file": None,  # TODO: add the events later
-                "ieeg_file": root_dir / f"{subject_identifier}_trial{trial_id:03}.h5",
-                "ieeg_electrodes_file": root_dir / f"electrode_labels/{subject_identifier}/electrode_labels.json",
-                "ieeg_channels_file": root_dir / "corrupted_elec.json",
+                "files": {
+                    "neural_data_file": root_dir / f"{subject_identifier}_trial{trial_id:03}.h5",
+                    "electrode_labels_file": root_dir / f"electrode_labels/{subject_identifier}/electrode_labels.json",
+                    "corrupted_electrodes_file": root_dir / "corrupted_elec.json",
+                    "localization_file": root_dir / f"localization/{subject_identifier}/depth-wm.csv",
+                    "events_file": None,  # TODO: add the events later
+                }
             }
             for trial_id in this_subject_trial_ids
         ]
@@ -102,14 +111,15 @@ class BrainTreebankSession(BIDSSession):
     def __clean_electrode_label(self, electrode_label: str) -> str:
         return electrode_label.replace("*", "").replace("#", "")
 
-    def __filter_electrode_labels(self, electrode_labels: list[str], channels_file: str | Path) -> list[str]:
+    def __filter_electrode_labels(self, electrode_labels: list[str]) -> list[str]:
         """
         Filter the electrode labels to remove corrupted electrodes and electrodes that don't have brain signal
         """
         filtered_electrode_labels = electrode_labels
         # Step 1. Remove corrupted electrodes
         if not self.allow_corrupted:
-            with open(channels_file) as f:
+            corrupted_electrodes_file = self.session["files"]["corrupted_electrodes_file"]
+            with open(corrupted_electrodes_file) as f:
                 corrupted_electrodes = json.load(f)[self.subject_identifier]
                 corrupted_electrodes = [self.__clean_electrode_label(e) for e in corrupted_electrodes]
             filtered_electrode_labels = [e for e in filtered_electrode_labels if e not in corrupted_electrodes]
@@ -118,18 +128,19 @@ class BrainTreebankSession(BIDSSession):
         filtered_electrode_labels = [e for e in filtered_electrode_labels if e not in trigger_electrodes]
         return filtered_electrode_labels
 
-    def _load_ieeg_electrodes(self, electrodes_file: str | Path, channels_file: str | Path):
+    def _load_ieeg_electrodes(self):
         # Load electrode labels
-        with open(electrodes_file) as f:
+        electrode_labels_file = self.session["files"]["electrode_labels_file"]
+        with open(electrode_labels_file) as f:
             electrode_labels = json.load(f)
         electrode_labels = [self.__clean_electrode_label(e) for e in electrode_labels]
         self._non_filtered_electrode_labels = electrode_labels  # used in load_ieeg_data for accessing the original electrode indices in h5 file
 
-        electrode_labels = self.__filter_electrode_labels(electrode_labels, channels_file)
+        electrode_labels = self.__filter_electrode_labels(electrode_labels)
 
         # Load localization data
-        loc_file = os.path.join(self.root_dir, f"localization/{self.subject_identifier}/depth-wm.csv")  # TODO: make this a parameter in the session constructor
-        df = pd.read_csv(loc_file)
+        localization_file = self.session["files"]["localization_file"]
+        df = pd.read_csv(localization_file)
         df["Electrode"] = df["Electrode"].apply(self.__clean_electrode_label)
         coordinates: np.ndarray = np.zeros((len(electrode_labels), 3), dtype=np.float32)
         for label_idx, label in enumerate(electrode_labels):
@@ -155,8 +166,9 @@ class BrainTreebankSession(BIDSSession):
             brain_area=np.array(["UNKNOWN"] * len(electrode_labels)),
         )
 
-    def _load_ieeg_data(self, ieeg_file: str | Path, suppress_warnings: bool = True):
-        with h5py.File(ieeg_file, "r", locking=False) as f:
+    def _load_ieeg_data(self, suppress_warnings: bool = True):
+        neural_data_file = self.session["files"]["neural_data_file"]
+        with h5py.File(neural_data_file, "r", locking=False) as f:
             h5_neural_data_keys = {electrode_label: f"electrode_{electrode_i}" for electrode_i, electrode_label in enumerate(self._non_filtered_electrode_labels)}
             # Get data length first
             electrode_data_length = f["data"][h5_neural_data_keys[self._non_filtered_electrode_labels[0]]].shape[0]

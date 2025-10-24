@@ -73,16 +73,18 @@ class CCEPSession(BIDSSession):
             all_sessions.append(
                 {
                     "session_identifier": session_identifier,
-                    "events_file": eeg_file_path[:-10] + "_events.tsv",
-                    "ieeg_file": eeg_path,
-                    "ieeg_electrodes_file": electrodes_file,
-                    "ieeg_channels_file": eeg_file_path[:-10] + "_channels.tsv",
+                    "files": {
+                        "events_file": eeg_file_path[:-10] + "_events.tsv",
+                        "ieeg_file": eeg_path,
+                        "ieeg_electrodes_file": electrodes_file,
+                        "ieeg_channels_file": eeg_file_path[:-10] + "_channels.tsv",
+                    }
                 }
             )
         return all_sessions
 
     def _load_electrical_stimulation(self) -> IrregularTimeSeries:
-        events_file = self.session["events_file"]
+        events_file = self.session["files"]["events_file"]
         events_df = pd.read_csv(events_file, sep="\t")
         events_df = events_df[events_df["trial_type"].str.upper().isin(["ELECTRICAL_STIMULATION"])]
 
