@@ -31,8 +31,8 @@ class BIDSSession(SessionBase):
             allow_corrupted=allow_corrupted,
         )
 
-        self.data_dict["channels"] = self._load_ieeg_electrodes(self.session["files"]["ieeg_electrodes_file"], self.session["files"]["ieeg_channels_file"])
-        self.data_dict["ieeg"] = self._load_ieeg_data(self.session["files"]["ieeg_file"])
+        self.data_dict["channels"] = self._load_ieeg_electrodes()
+        self.data_dict["ieeg"] = self._load_ieeg_data()
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
@@ -49,7 +49,10 @@ class BIDSSession(SessionBase):
         assert "participant_id" in participants_df.columns, "participants.tsv found but no 'participant_id' column present"
         return participants_df["participant_id"].to_list()
 
-    def _load_ieeg_electrodes(self, electrodes_file: str | Path, channels_file: str | Path) -> ArrayDict:
+    def _load_ieeg_electrodes(self) -> ArrayDict:
+        electrodes_file = self.session["files"]["ieeg_electrodes_file"]
+        channels_file = self.session["files"]["ieeg_channels_file"]
+        
         electrodes_df = pd.read_csv(electrodes_file, sep="\t")
         channels_df = pd.read_csv(channels_file, sep="\t")
 
@@ -76,7 +79,9 @@ class BIDSSession(SessionBase):
         )
         return electrodes
 
-    def _load_ieeg_data(self, ieeg_file: str | Path, suppress_warnings: bool = True):
+    def _load_ieeg_data(self, suppress_warnings: bool = True):
+        ieeg_file = self.session["files"]["ieeg_file"]
+        
         if suppress_warnings:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="No BIDS -> MNE mapping found")

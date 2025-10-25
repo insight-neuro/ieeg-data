@@ -206,25 +206,24 @@ class SessionBase(ABC):
                 print(f"Saved data: {path}")
                 print(f"\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes\t\t{n_stim_events} stimulation events")
 
-    def _load_ieeg_electrodes(self, electrodes_file: str | Path, channels_file: str | Path):
+    def _load_ieeg_electrodes(self):
         """
         This is an optional function to implement (only if the session contains ieeg data). Load the electrodes from the electrodes file.
-
-        Args:
-            electrodes_file (str | Path): The path to the electrodes file.
-            channels_file (str | Path): The path to the channels file.
+        
+        The method should access file paths from self.session["files"] as needed.
 
         Returns:
             electrodes (temporaldata.ArrayDict): The electrodes in the format of a temporaldata.ArrayDict. The labels are the channel names, the coordinates are the x, y, z coordinates of the electrodes, and the types are the types of the channels.
         """
         raise NotImplementedError("Not implemented")
 
-    def _load_ieeg_data(self, ieeg_file: str | Path, suppress_warnings: bool = True):
+    def _load_ieeg_data(self, suppress_warnings: bool = True):
         """
         This is an optional function to implement (only if the session contains ieeg data). Load the iEEG data from the ieeg file.
+        
+        The method should access file paths from self.session["files"] as needed.
 
         Args:
-            ieeg_file (str | Path): The path to the iEEG file.
             suppress_warnings (bool): Whether to suppress warnings when loading the iEEG data. Default is True.
 
         Returns:
