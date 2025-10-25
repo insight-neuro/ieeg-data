@@ -93,7 +93,7 @@ class SessionBase(ABC):
         Find the root directory of the dataset in the environment variables.
         """
         root_dir = os.environ.get("RAW_DATA_DIR_" + cls.dataset_identifier.upper(), None)
-        if root_dir is not None:
+        if root_dir is None:
             root_dir = os.environ["RAW_DATA_DIR"] + "/" + cls.dataset_identifier
         return root_dir
         # try:
