@@ -54,7 +54,7 @@ class BlackrockSession(SessionBase):
             root_dir = Path(root_dir)
         
         # Find all subject directories in the root directory
-        return [d.name for d in root_dir.iterdir() if d.is_dir()]
+        return [d.name for d in root_dir.iterdir() if d.is_dir() and not d.name.startswith('_')]
 
     @classmethod
     def discover_sessions(cls, subject_identifier: str, root_dir: str | Path | None = None) -> list:
@@ -65,7 +65,7 @@ class BlackrockSession(SessionBase):
         
         # Find all session directories in the subject directory
         subject_dir = root_dir / subject_identifier
-        session_identifiers = [d.name for d in subject_dir.iterdir() if d.is_dir()]
+        session_identifiers = [d.name for d in subject_dir.iterdir() if d.is_dir() and not d.name.startswith('_')]
 
         all_sessions = []
         for session_identifier in session_identifiers:
