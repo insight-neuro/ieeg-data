@@ -195,16 +195,20 @@ class BrainTreebankSession(SessionBase):
         n_electrodes = data.ieeg.data.shape[1]
         logger.info(f"\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes")
         return path, data
-
+        
 
 if __name__ == "__main__":
-    root_dir = "/orcd/data/fiete/001/zaho/braintreebank/"
-    import dotenv
-
+    import dotenv, logging
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(message)s'
+    )
+    
     dotenv.load_dotenv()
     save_root_dir = os.getenv("PROCESSED_DATA_DIR")
     if save_root_dir is None:
         raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
 
-    BrainTreebankSession.save_all_subjects_sessions(root_dir=root_dir, save_root_dir=save_root_dir)
-
+    BrainTreebankSession.save_all_subjects_sessions(save_root_dir=save_root_dir, overwrite=True)

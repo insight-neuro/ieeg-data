@@ -92,7 +92,7 @@ class SessionBase(ABC):
         """
         Find the root directory of the dataset in the environment variables.
         """
-        root_dir = os.environ.get("RAW_DATA_DIR_" + cls.dataset_identifier.upper(), None)
+        root_dir = os.environ.get("RAW_DATA_DIR_" + cls.dataset_identifier.lower(), None)
         if root_dir is None:
             root_dir = os.environ["RAW_DATA_DIR"] + "/" + cls.dataset_identifier
         return root_dir
@@ -160,33 +160,30 @@ class SessionBase(ABC):
         """
         path = Path(save_root_dir) / self.dataset_identifier / self.subject_identifier / self.session_identifier
         data = self.get_data()
-
-        if path.exists():
-            logger.info(f"Data for subject {self.subject_identifier} and session {self.session_identifier} already exists at {path}. Skipping.")
-            return path, data
-
+        
         path.mkdir(parents=True, exist_ok=True)
 
         # Save to HDF5
         with h5py.File(path / "data.h5", "w") as f:
             data.to_hdf5(f)
-
-        logger.info(f"Saved data for subject {self.subject_identifier} and session {self.session_identifier} to {path}")
         return path, data
 
     @classmethod
-    def save_all_subjects_sessions(cls, root_dir: str | Path | None, save_root_dir: str | Path):
+    def save_all_subjects_sessions(cls, save_root_dir: str | Path, root_dir: str | Path | None = None, overwrite: bool = False, verbose: bool = True):
         """Save all subjects and sessions to the specified directory.
 
         Args:
-            root_dir (str | Path | None): Root directory of the dataset. If None, will be found in environment variables.
             save_root_dir (str | Path): Root directory to save the processed data.
+            root_dir (str | Path | None): Root directory of the dataset. If None, will be found in environment variables. Default is None.
+            overwrite (bool): Whether to overwrite existing data. Default is False.
+            verbose (bool): Whether to print verbose output. Default is True.
         """
         for subject_identifier in cls.discover_subjects(root_dir=root_dir):
             for session in cls.discover_sessions(subject_identifier=subject_identifier, root_dir=root_dir):
                 session_identifier = session["session_identifier"]
-                if (Path(save_root_dir) / cls.dataset_identifier / subject_identifier / session_identifier / "data.h5").exists():
-                    print(f"Data for {cls.dataset_identifier}/{subject_identifier}/{session_identifier} already exists. Skipping.")
+                if (Path(save_root_dir) / cls.dataset_identifier / subject_identifier / session_identifier / "data.h5").exists() and not overwrite:
+                    if verbose:
+                        logger.info(f"Data for {cls.dataset_identifier}/{subject_identifier}/{session_identifier} already exists. Skipping.")
                     continue
 
                 session = cls(
@@ -203,8 +200,9 @@ class SessionBase(ABC):
                     n_stim_events = data.electrical_stimulation.timestamps.shape[0]
                 else:
                     n_stim_events = 0
-                print(f"Saved data: {path}")
-                print(f"\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes\t\t{n_stim_events} stimulation events")
+                if verbose:
+                    # Print both messages in a single logger.info call to ensure they appear together
+                    logger.info(f"Saved data: {path}\n\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes\t\t{n_stim_events} stimulation events")
 
     def _load_ieeg_electrodes(self):
         """

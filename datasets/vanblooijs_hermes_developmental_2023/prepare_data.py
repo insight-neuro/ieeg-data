@@ -100,24 +100,19 @@ class CCEPSession(BIDSSession):
             domain="auto",
         )
 
-    def save_data(self, save_root_dir: str | Path) -> tuple:
-        path, data = super().save_data(save_root_dir)
-
-        session_length = data.ieeg.data.shape[0] / data.ieeg.sampling_rate
-        n_electrodes = data.ieeg.data.shape[1]
-        n_stim_events = data.electrical_stimulation.timestamps.shape[0]
-        print(f"\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes\t\t{n_stim_events} stimulation events")
-        return path, data
-
 
 if __name__ == "__main__":
-    root_dir = "/home/zaho/orcd/pool/bfm_dataset/ccep/ds004080-1.2.2/"
-    import dotenv
-
+    import dotenv, logging
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(message)s'
+    )
+    
     dotenv.load_dotenv()
     save_root_dir = os.getenv("PROCESSED_DATA_DIR")
     if save_root_dir is None:
         raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
 
-    CCEPSession.save_all_subjects_sessions(root_dir=root_dir, save_root_dir=save_root_dir)
-
+    CCEPSession.save_all_subjects_sessions(save_root_dir=save_root_dir, overwrite=True)
