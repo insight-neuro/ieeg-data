@@ -10,8 +10,8 @@ from typing import ClassVar
 import h5py
 import numpy as np
 import pandas as pd
-# from brainsets.descriptions import BrainsetDescription, DeviceDescription, SessionDescription, SubjectDescription
-# from brainsets.taxonomy import RecordingTech, Species
+from brainsets.descriptions import BrainsetDescription, DeviceDescription, SessionDescription, SubjectDescription
+from brainsets.taxonomy import RecordingTech, Species
 from temporaldata import Data
 
 logger = logging.getLogger(__name__)
