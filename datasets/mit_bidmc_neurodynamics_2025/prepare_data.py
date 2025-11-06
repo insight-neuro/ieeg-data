@@ -71,11 +71,14 @@ class BlackrockSession(SessionBase):
         for session_identifier in session_identifiers:
             session_dir = subject_dir / session_identifier
             assert (session_dir / f"{session_identifier}-001.nev").exists(), f"NEV file not found: {session_dir / f"{session_identifier}-001.nev"}"
-            assert (session_dir / "electrodes.h5").exists(), f"Electrode file not found: {session_dir / "electrodes.h5"}"
+
+            electrodes_file = subject_dir / "electrodes.h5" # See if there is a general electrodes file for the subject
+            if not electrodes_file.exists(): electrodes_file = session_dir / "electrodes.h5" # Otherwise use the session-specific electrodes file
+            assert electrodes_file.exists(), f"Electrode file not found: {electrodes_file}"
 
             session_files = {
                 "ieeg_file": session_dir / f"{session_identifier}-001.nev",
-                "electrodes_file": session_dir / "electrodes.h5"
+                "electrodes_file": electrodes_file
             }
             if (session_dir / "images.h5").exists():
                 session_files["images_file"] = session_dir / "images.h5"
