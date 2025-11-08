@@ -5,6 +5,7 @@ import logging
 import os, glob
 import sys
 from pathlib import Path
+import shutil
 
 import h5py
 import numpy as np
@@ -142,6 +143,18 @@ class BlackrockSession(SessionBase):
                 images_json = json.load(f)
             with open(path / "images.json", "w") as f:
                 json.dump(images_json, f, indent=4)
+
+            # If there is a trial_data directory, copy it to the save directory
+            parent_dir = Path(self.session["files"]["images_json"]).parent
+            # Copy the trial_data directory to the save directory
+            for item in parent_dir.iterdir():
+                if item.is_dir() and item.name.startswith("trial_data"):
+                    dest_dir = path / item.name
+                    if dest_dir.exists():
+                        shutil.rmtree(dest_dir)  # Remove if already exists to avoid merge/duplication
+                    shutil.copytree(item, dest_dir)
+                    break  # Only copy first matching directory
+
 
 if __name__ == "__main__":
     import dotenv

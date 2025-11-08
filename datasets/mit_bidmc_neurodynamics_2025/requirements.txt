@@ -7,4 +7,5 @@ brainsets>=0.1.2
 
 # Dataset-specific dependencies
 neo>=0.13.0
+shutil>=0.1.0
 
