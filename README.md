@@ -78,7 +78,9 @@ session = Data(
     # In case the data includes images shown
     images = IrregularTimeSeries(
         timestamps = stimulus_times,  # When stimuli were shown. (n_stimuli,)
-        stimulus_ids = np.array(stimulus_images),  # Image identifiers
+        duration = np.array([0.100]), # seconds. Shape: (n_stimuli, ). How long the image was presented on the screen.
+        size = np.array([8]), # Shape: (n_stimuli, ). Size of the stimulus in degrees of the visual field.
+        stimulus_ids = np.array([0]),  # Shape: (n_stimuli,). Should point to stimulus_ids in the images.json accompanying the data.h5 file.
         timekeys = ['timestamps'],  # Only timestamps should be adjusted during operations
     ),
     

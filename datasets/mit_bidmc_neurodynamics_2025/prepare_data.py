@@ -80,10 +80,16 @@ class BlackrockSession(SessionBase):
                 "ieeg_file": session_dir / f"{session_identifier}-001.nev",
                 "electrodes_file": electrodes_file
             }
+
             if (session_dir / "images.h5").exists():
                 session_files["images_file"] = session_dir / "images.h5"
+                if not (session_dir / "images.json").exists():
+                    raise FileNotFoundError(f"Images JSON file not found: {session_dir / 'images.json'}. This file is required to save the images.")
+                session_files["images_json"] = session_dir / "images.json"
+
             if (session_dir / "triggers.h5").exists():
                 session_files["triggers_file"] = session_dir / "triggers.h5"
+
             all_sessions.append(
                 {
                     "session_identifier": session_identifier,
@@ -126,6 +132,16 @@ class BlackrockSession(SessionBase):
         with h5py.File(self.session["files"]["triggers_file"], "r") as f:
             triggers = IrregularTimeSeries.from_hdf5(f)
         return triggers
+    
+    def save_data(self, save_root_dir: str | Path):
+        path, data = super().save_data(save_root_dir)
+
+        # If there were any images json file, save it
+        if "images_json" in self.session["files"]:
+            with open(self.session["files"]["images_json"], "r") as f:
+                images_json = json.load(f)
+            with open(path / "images.json", "w") as f:
+                json.dump(images_json, f, indent=4)
 
 if __name__ == "__main__":
     import dotenv
