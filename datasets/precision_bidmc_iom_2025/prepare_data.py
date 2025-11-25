@@ -317,9 +317,6 @@ if __name__ == "__main__":
     if save_root_dir is None:
         raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
 
-    PrecisionSession("NSR-005-003", "Passive_FIH0073_Lhand_1_1754618959035_250807_220919").save_data(save_root_dir=".")
-    exit()
-
     # Enable logging
     logging.basicConfig(level=logging.INFO)
     
