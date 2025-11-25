@@ -37,7 +37,7 @@ class PrecisionSession(SessionBase):
     Data is recorded using the Precision Neuroscience 1024-channel thin-film cortical arrays.
     """
 
-    name = "Precision BIDMC IOM 2025"
+    name = "Precision Intraoperative Monitoring Data at BIDMC (2025)"
     dataset_identifier = "precision_bidmc_iom_2025"
     dataset_version = "0.1.0"
     url = ""  # private dataset
@@ -45,11 +45,9 @@ class PrecisionSession(SessionBase):
 
     # Standard parameters for Precision arrays
     N_CHANNELS = 1024
-    FS_RAW = 10000  # Raw sampling rate in Hz
-    FS_PROCESSED = 5000  # Downsampled rate in Hz
 
     def __init__(self, subject_identifier, session_identifier, root_dir=None, allow_corrupted=False, 
-                 apply_preprocessing=True, impedance_threshold=(1e3, 2.5e6)):
+                 impedance_threshold=(1e3, 2.5e6)):
         """
         Initialize PrecisionSession.
         
@@ -58,11 +56,8 @@ class PrecisionSession(SessionBase):
             session_identifier: Session/recording ID
             root_dir: Root directory containing the data
             allow_corrupted: Whether to allow loading corrupted data
-            apply_preprocessing: If True, applies decimation, notch filtering (60Hz harmonics), 
-                               and bandpass filtering (30-300 Hz)
             impedance_threshold: Tuple of (min, max) impedance in Ohms for channel quality filtering
         """
-        self.apply_preprocessing = apply_preprocessing
         self.impedance_threshold = impedance_threshold
         
         super().__init__(subject_identifier, session_identifier, root_dir=root_dir, allow_corrupted=allow_corrupted)
@@ -70,8 +65,8 @@ class PrecisionSession(SessionBase):
         self.data_dict["channels"] = self._load_ieeg_electrodes()
         self.data_dict["ieeg"] = self._load_ieeg_data()
 
-        if "triggers_file" in self.session["files"]:
-            self.data_dict["triggers"] = self._load_triggers()
+        if "handpose_file" in self.session["files"]:
+            self.data_dict["handpose"] = self._load_handpose()
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
@@ -96,7 +91,7 @@ class PrecisionSession(SessionBase):
         subject_dir = root_dir / subject_identifier
         
         # Find probe map file
-        probe_map_files = list(subject_dir.glob("*map*.xml")) + list(subject_dir.glob("Precision_map*.xml")) + list(subject_dir.parent.glob("map*.xml"))
+        probe_map_files = list(subject_dir.glob("*map*.xml")) + list(subject_dir.glob("Precision_map*.xml")) + list(subject_dir.parent.glob("*map*.xml"))
         if not probe_map_files:
             raise FileNotFoundError(f"No probe map XML file found in {subject_dir}")
         probe_map_file = probe_map_files[0]
@@ -281,10 +276,6 @@ class PrecisionSession(SessionBase):
         neural_data, sampling_rate, metadata = self._read_intan_data(info_file)
         
         self.metadata = metadata  # Store for trigger detection
-        
-        # Apply preprocessing if requested
-        if self.apply_preprocessing:
-            neural_data, sampling_rate = self._preprocess_data(neural_data, sampling_rate)
         
         # Transpose to (n_samples, n_channels) for RegularTimeSeries
         neural_data = neural_data.T
