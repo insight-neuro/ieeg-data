@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from scipy import signal
-from temporaldata import ArrayDict, RegularTimeSeries, IrregularTimeSeries
+from temporaldata import ArrayDict, RegularTimeSeries, IrregularTimeSeries, Data
 
 # Handle both relative imports (when used as module) and absolute imports (when run directly)
 try:
@@ -66,7 +66,9 @@ class PrecisionSession(SessionBase):
         self.data_dict["ieeg"] = self._load_ieeg_data()
 
         if "handpose_file" in self.session["files"]:
-            self.data_dict["handpose"] = self._load_handpose()
+            handpose, handpose_continuous_intervals = self._load_handpose()
+            self.data_dict["handpose"] = handpose
+            self.data_dict["handpose_continuous_intervals"] = handpose_continuous_intervals
 
     @classmethod
     def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
@@ -288,6 +290,23 @@ class PrecisionSession(SessionBase):
             domain_start=0.0,
             domain="auto",
         )
+        
+    def _load_images(self):
+        with h5py.File(self.session["files"]["images_file"], "r") as f:
+            images = IrregularTimeSeries.from_hdf5(f).materialize()
+        return images
+
+    def _load_triggers(self):
+        with h5py.File(self.session["files"]["triggers_file"], "r") as f:
+            triggers = IrregularTimeSeries.from_hdf5(f).materialize()
+        return triggers
+
+    def _load_handpose(self):
+        with h5py.File(self.session["files"]["handpose_file"], "r") as f:
+            handpose = Data.from_hdf5(f).materialize()
+        
+        handpose_continuous_intervals = handpose.continuous_intervals
+        return handpose.handpose, handpose_continuous_intervals
 
 
 if __name__ == "__main__":
@@ -297,6 +316,9 @@ if __name__ == "__main__":
     save_root_dir = os.getenv("PROCESSED_DATA_DIR")
     if save_root_dir is None:
         raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
+
+    PrecisionSession("NSR-005-003", "Passive_FIH0073_Lhand_1_1754618959035_250807_220919").save_data(save_root_dir=".")
+    exit()
 
     # Enable logging
     logging.basicConfig(level=logging.INFO)
