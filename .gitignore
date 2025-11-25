@@ -43,3 +43,7 @@ coverage.xml
 
 # Windows files
 Thumbs.db
+
+# Precision Neuroscience specific libraries
+datasets/precision_bidmc_iom_2025/intanutil/
+datasets/precision_bidmc_iom_2025/file_loader.py

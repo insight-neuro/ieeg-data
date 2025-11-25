@@ -66,7 +66,7 @@ class BlackrockSession(SessionBase):
         
         # Find all session directories in the subject directory
         subject_dir = root_dir / subject_identifier
-        session_identifiers = [d.name for d in subject_dir.iterdir() if d.is_dir() and not d.name.startswith('_')]
+        session_identifiers = [d.name for d in subject_dir.iterdir() if d.is_dir() and not d.name.startswith('_') and not d.name.startswith('.')]
 
         all_sessions = []
         for session_identifier in session_identifiers:
