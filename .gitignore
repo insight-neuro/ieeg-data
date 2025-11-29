@@ -47,3 +47,13 @@ Thumbs.db
 # Precision Neuroscience specific libraries
 datasets/precision_bidmc_iom_2025/intanutil/
 datasets/precision_bidmc_iom_2025/file_loader.py
+
+# Lock files
+*.lock
+
+# Private Files
+*.private
+*.private.md
+
+# Cache
+*_cache/
