@@ -1,58 +1,44 @@
-from __future__ import annotations  # allow compatibility for Python 3.9
-
 import warnings
+from abc import ABC
 from pathlib import Path
-from typing import ClassVar
 
 import numpy as np
 import pandas as pd
 from mne_bids import read_raw_bids
 from temporaldata import ArrayDict, RegularTimeSeries
 
-from .session import SessionBase
+from ieeg_data.pipeline import IEEGPipeline
 
 
-class BIDSSession(SessionBase):
+class BIDSPipeline(IEEGPipeline, ABC):
     """
-    This class is used to load the iEEG neural data for a given session from the OpenNeuro BIDS dataset file format as used in OpenNeuro. The dataset is assumed to be stored in the root_dir directory.
+    This class is used to load the iEEG neural data for a given session from the OpenNeuro BIDS dataset file format as used in OpenNeuro.
     """
-
-    def __init__(
-        self,
-        subject_identifier: str,
-        session_identifier: str,
-        root_dir: str | Path | None = None,
-        allow_corrupted: bool = False,
-    ):
-        super().__init__(
-            subject_identifier,
-            session_identifier,
-            root_dir=root_dir,
-            allow_corrupted=allow_corrupted,
-        )
-
-        self.data_dict["channels"] = self._load_ieeg_electrodes()
-        self.data_dict["ieeg"] = self._load_ieeg_data()
 
     @classmethod
-    def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
-        if root_dir is None:
-            root_dir = cls.find_root_dir()
-        if isinstance(root_dir, str):
-            root_dir = Path(root_dir)
+    def discover_subjects(cls, raw_dir: Path) -> list[str]:
+        """
+        Discover all subjects in the BIDS dataset located at raw_dir
+        """
 
-        participants_file = root_dir / "participants.tsv"
+        participants_file = raw_dir / "participants.tsv"
         if not participants_file.exists():
-            raise FileNotFoundError(f"participants.tsv not found in {root_dir} (looking for path: {participants_file})")
+            raise FileNotFoundError(f"participants.tsv not found in {raw_dir} (looking for path: {participants_file})")
 
         participants_df = pd.read_csv(participants_file, sep="\t")
-        assert "participant_id" in participants_df.columns, "participants.tsv found but no 'participant_id' column present"
+
+        if "participant_id" not in participants_df.columns:
+            raise ValueError("participants.tsv found but no 'participant_id' column present")
+
         return participants_df["participant_id"].to_list()
 
-    def _load_ieeg_electrodes(self) -> ArrayDict:
-        electrodes_file = self.session["files"]["ieeg_electrodes_file"]
-        channels_file = self.session["files"]["ieeg_channels_file"]
-        
+    def populate_data(self, manifest_item) -> dict:
+        return {
+            "channels": self._load_ieeg_electrodes(manifest_item.electrodes_file, manifest_item.channels_file),
+            "ieeg": self._load_ieeg_data(manifest_item.ieeg_file),
+        }
+
+    def _load_ieeg_electrodes(self, electrodes_file: Path, channels_file: Path) -> ArrayDict:
         electrodes_df = pd.read_csv(electrodes_file, sep="\t")
         channels_df = pd.read_csv(channels_file, sep="\t")
 
@@ -79,9 +65,7 @@ class BIDSSession(SessionBase):
         )
         return electrodes
 
-    def _load_ieeg_data(self, suppress_warnings: bool = True):
-        ieeg_file = self.session["files"]["ieeg_file"]
-        
+    def _load_ieeg_data(self, ieeg_file: Path, suppress_warnings: bool = True):
         if suppress_warnings:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="No BIDS -> MNE mapping found")
@@ -96,9 +80,9 @@ class BIDSSession(SessionBase):
         raw = raw.pick(self.data_dict["channels"].id.tolist())  # type: ignore[attr-defined]
 
         return RegularTimeSeries(
-            data=raw.get_data().astype(np.float32).T * 1e6,  # shape should be (n_samples, n_channels), and convert to microvolts
+            data=raw.get_data().astype(np.float32).T
+            * 1e6,  # shape should be (n_samples, n_channels), and convert to microvolts
             sampling_rate=int(raw.info["sfreq"]),
             domain_start=0.0,  # Start of the domain (in seconds)
             domain="auto",  # Automatically determine the domain based on the data # type:ignore
         )
-

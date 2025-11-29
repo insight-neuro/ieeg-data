@@ -1,25 +1,15 @@
-from __future__ import annotations  # allow compatibility for Python 3.9
-
 import json
-import logging
-import os
-from pathlib import Path
 
 import h5py
 import numpy as np
 import pandas as pd
 from temporaldata import ArrayDict, RegularTimeSeries
 
-from base import SessionBase
-
-logger = logging.getLogger(__name__)
+from ieeg_data.pipeline import IEEGPipeline
 
 
-class BrainTreebankSession(SessionBase):
-    """
-    This class is used to load the iEEG neural data for a given session from the BrainTreebank dataset at https://braintreebank.dev/
-    """
-
+class Pipeline(IEEGPipeline):
+    brainset_id = "wang_barbu_braintreebank_2023"
     name = "BrainTreebank"
     dataset_identifier = "wang_barbu_braintreebank_2023"
     url = "https://braintreebank.dev/"
@@ -34,35 +24,8 @@ class BrainTreebankSession(SessionBase):
       url={https://arxiv.org/abs/2411.08343}, 
 }"""
 
-    def __init__(
-        self,
-        subject_identifier,
-        session_identifier,
-        root_dir=None,
-        allow_corrupted=False,
-    ):
-        # Note: BrainTreebankSession inherits from SessionBase.
-        # The data format is not BIDS despite the name.
-        super().__init__(
-            subject_identifier,
-            session_identifier,
-            root_dir=root_dir,
-            allow_corrupted=allow_corrupted,
-        )
-
-        self.data_dict["channels"] = self._load_ieeg_electrodes()
-        self.data_dict["ieeg"] = self._load_ieeg_data()
-
     @classmethod
-    def discover_subjects(cls, root_dir: str | Path | None = None) -> list:
-        return list("sub_" + str(i) for i in range(1, 11))  # from 1 to 10. sub_1, sub_2, ..., sub_10
-
-    @classmethod
-    def discover_sessions(cls, subject_identifier: str, root_dir: str | Path | None = None):
-        if root_dir is None:
-            root_dir = cls.find_root_dir()
-        root_dir = Path(root_dir)
-
+    def get_manifest(cls, raw_dir, args) -> pd.DataFrame:
         all_subject_trials = [
             (1, 0),
             (1, 1),
@@ -91,24 +54,28 @@ class BrainTreebankSession(SessionBase):
             (10, 0),
             (10, 1),
         ]
-        this_subject_trial_ids = [trial_id for subject_id, trial_id in all_subject_trials if subject_id == int(subject_identifier[4:])]  # e.g. sub_1 -> [0, 1, 2] - session IDs
 
-        return [
-            {
-                "session_identifier": f"trial{trial_id:03}",
-                "files": {
-                    "neural_data_file": root_dir / f"{subject_identifier}_trial{trial_id:03}.h5",
-                    "electrode_labels_file": root_dir / f"electrode_labels/{subject_identifier}/electrode_labels.json",
-                    "corrupted_electrodes_file": root_dir / "corrupted_elec.json",
-                    "localization_file": root_dir / f"localization/{subject_identifier}/depth-wm.csv",
-                    "events_file": None,  # TODO: add the events later
+        manifest = pd.DataFrame(
+            [
+                {
+                    "session_id": f"trial_{trial_id:03}",
+                    "neural_data": raw_dir / f"sub_{subject_id}_trial{trial_id:03}.h5",
+                    "electrode_labels": raw_dir / f"electrode_labels/sub_{subject_id}/electrode_labels.json",
+                    "corrupted_electrodes": raw_dir / "corrupted_elec.json",
+                    "localization": raw_dir / f"localization/sub_{subject_id}/depth-wm.csv",
+                    "events": None,  # TODO: add the events later
                 }
-            }
-            for trial_id in this_subject_trial_ids
-        ]
+                for subject_id, trial_id in all_subject_trials
+            ]
+        ).set_index("session_id")
 
-    def __clean_electrode_label(self, electrode_label: str) -> str:
-        return electrode_label.replace("*", "").replace("#", "")
+        return manifest
+
+    def populate_data(self, manifest_item) -> dict:
+        return {
+            "channels": self._load_ieeg_electrodes(manifest_item.electrode_labels, manifest_item.localization),
+            "ieeg": self._load_ieeg_data(manifest_item.neural_data),
+        }
 
     def __filter_electrode_labels(self, electrode_labels: list[str]) -> list[str]:
         """
@@ -120,25 +87,27 @@ class BrainTreebankSession(SessionBase):
             corrupted_electrodes_file = self.session["files"]["corrupted_electrodes_file"]
             with open(corrupted_electrodes_file) as f:
                 corrupted_electrodes = json.load(f)[self.subject_identifier]
-                corrupted_electrodes = [self.__clean_electrode_label(e) for e in corrupted_electrodes]
+                corrupted_electrodes = [e.replace("*", "").replace("#", "") for e in corrupted_electrodes]
             filtered_electrode_labels = [e for e in filtered_electrode_labels if e not in corrupted_electrodes]
         # Step 2. Remove trigger electrodes
-        trigger_electrodes = [e for e in electrode_labels if (e.upper().startswith("DC") or e.upper().startswith("TRIG"))]
+        trigger_electrodes = [
+            e for e in electrode_labels if (e.upper().startswith("DC") or e.upper().startswith("TRIG"))
+        ]
         filtered_electrode_labels = [e for e in filtered_electrode_labels if e not in trigger_electrodes]
         return filtered_electrode_labels
 
-    def _load_ieeg_electrodes(self):
+    def _load_ieeg_electrodes(self, electrode_labels_file: str, localization_file: str):
         # Load electrode labels
-        electrode_labels_file = self.session["files"]["electrode_labels_file"]
         with open(electrode_labels_file) as f:
             electrode_labels = json.load(f)
         electrode_labels = [self.__clean_electrode_label(e) for e in electrode_labels]
-        self._non_filtered_electrode_labels = electrode_labels  # used in load_ieeg_data for accessing the original electrode indices in h5 file
+        self._non_filtered_electrode_labels = (
+            electrode_labels  # used in load_ieeg_data for accessing the original electrode indices in h5 file
+        )
 
         electrode_labels = self.__filter_electrode_labels(electrode_labels)
 
         # Load localization data
-        localization_file = self.session["files"]["localization_file"]
         df = pd.read_csv(localization_file)
         df["Electrode"] = df["Electrode"].apply(self.__clean_electrode_label)
         coordinates: np.ndarray = np.zeros((len(electrode_labels), 3), dtype=np.float32)
@@ -165,10 +134,12 @@ class BrainTreebankSession(SessionBase):
             brain_area=np.array(["UNKNOWN"] * len(electrode_labels)),
         )
 
-    def _load_ieeg_data(self, suppress_warnings: bool = True):
-        neural_data_file = self.session["files"]["neural_data_file"]
+    def _load_ieeg_data(self, neural_data_file: str):
         with h5py.File(neural_data_file, "r", locking=False) as f:
-            h5_neural_data_keys = {electrode_label: f"electrode_{electrode_i}" for electrode_i, electrode_label in enumerate(self._non_filtered_electrode_labels)}
+            h5_neural_data_keys = {
+                electrode_label: f"electrode_{electrode_i}"
+                for electrode_i, electrode_label in enumerate(self._non_filtered_electrode_labels)
+            }
             # Get data length first
             electrode_data_length = f["data"][h5_neural_data_keys[self._non_filtered_electrode_labels[0]]].shape[0]
 
@@ -186,29 +157,3 @@ class BrainTreebankSession(SessionBase):
             domain_start=0.0,
             domain="auto",
         )
-
-    def save_data(self, save_root_dir: str | Path) -> tuple:
-        path, data = super().save_data(save_root_dir)
-        logger.info(f"Saved data for subject {self.subject_identifier} and session {self.session_identifier} to {path}")
-
-        session_length = data.ieeg.data.shape[0] / data.ieeg.sampling_rate
-        n_electrodes = data.ieeg.data.shape[1]
-        logger.info(f"\t\tSession length: {session_length:.2f} seconds\t\t{n_electrodes} electrodes")
-        return path, data
-        
-
-if __name__ == "__main__":
-    import dotenv, logging
-    
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(message)s'
-    )
-    
-    dotenv.load_dotenv()
-    save_root_dir = os.getenv("PROCESSED_DATA_DIR")
-    if save_root_dir is None:
-        raise ValueError("PROCESSED_DATA_DIR environment variable not set.")
-
-    BrainTreebankSession.save_all_subjects_sessions(save_root_dir=save_root_dir, overwrite=True)
