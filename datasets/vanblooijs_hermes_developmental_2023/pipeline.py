@@ -1,3 +1,10 @@
+# /// brainset-pipeline
+# python-version = "3.11"
+# dependencies = [
+#     "ieeg_data[bids]",
+# ]
+# ///
+
 import pandas as pd
 from mne_bids import BIDSPath
 from temporaldata import IrregularTimeSeries

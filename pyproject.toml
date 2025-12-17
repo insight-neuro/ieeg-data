@@ -33,7 +33,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-brainsets = { git = "https://github.com/neuro-galaxy/brainsets.git", rev = "90f2d1f" }  # Use new brainsets Pipeline API
+brainsets = { git = "https://github.com/neuro-galaxy/brainsets.git", rev = "148c357" }  # Use new brainsets Pipeline API
 
 [tool.ruff]
 target-version = "py311"

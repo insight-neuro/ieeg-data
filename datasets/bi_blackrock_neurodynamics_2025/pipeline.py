@@ -1,3 +1,12 @@
+# /// brainset-pipeline
+# python-version = "3.11"
+# dependencies = [
+#     "numpy>=1.24.0",
+#     "neo>=0.13.0",
+#     "ieeg-data",
+# ]
+# ///
+
 import json
 import shutil
 
